@@ -43,8 +43,10 @@ Future<void> deleteFile(String filePath) async {
 }
 
 Future<String> getFilePath(String fileName) async {
-  String appDirPath = await getAppDirectoryPath;
-  String filePath = '$appDirPath/$fileName';
+  String downloadDir = '/storage/emulated/0/Download';
+  String path = '$downloadDir/epubs/';
+  // String appDirPath = await getAppDirectoryPath;
+  String filePath = '$path/$fileName';
   bool isExists = await isFileExists(filePath);
   if (isExists == true) {
     return filePath;
@@ -56,8 +58,10 @@ Future<void> deleteFileWithDbData(
     FutureProviderRef ref, String md5, String format) async {
   try {
     String fileName = '$md5.$format';
-    String appDirPath = await getAppDirectoryPath;
-    await deleteFile('$appDirPath/$fileName');
+    String downloadDir = '/storage/emulated/0/Download';
+    String path = '$downloadDir/epubs/';
+    // String appDirPath = await getAppDirectoryPath;
+    await deleteFile('$path/$fileName');
     await ref.read(dbProvider).delete(md5);
     await ref.read(dbProvider).deleteBookState(fileName);
     // ignore: unused_result

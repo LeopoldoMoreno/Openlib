@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:openlib/ui/results_page.dart';
 
-class BookInfoWidget extends StatelessWidget {
+class BookInfoWidget extends ConsumerWidget {
   final Widget child;
   final dynamic data;
 
@@ -9,10 +11,10 @@ class BookInfoWidget extends StatelessWidget {
       : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     String description = data.description.toString().length < 3
         ? "No Description available"
-        : data.description.toString();
+        : parseHtmlToPlainText(data.description);
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       scrollDirection: Axis.vertical,
@@ -77,12 +79,26 @@ class BookInfoWidget extends StatelessWidget {
               color: Theme.of(context).textTheme.headlineMedium!.color!,
               maxLines: 4,
             ),
-            _TopPaddedText(
-              text: data.author ?? "unknown",
-              fontSize: 13,
-              topPadding: 7,
-              color: Theme.of(context).textTheme.headlineSmall!.color!,
-              maxLines: 3,
+            InkWell(
+              onTap: data.author != ""
+                  ? () {
+                      Navigator.push(context,
+                          MaterialPageRoute(builder: (BuildContext context) {
+                        return ResultPage(
+                          searchQuery: data.author,
+                        );
+                      }));
+                    }
+                  : null,
+              child: _TopPaddedText(
+                text: data.author ?? "unknown",
+                fontSize: 13,
+                topPadding: 7,
+                color: data.author != ""
+                    ? Colors.blue
+                    : Theme.of(context).textTheme.headlineSmall!.color!,
+                maxLines: 3,
+              ),
             ),
             _TopPaddedText(
               text: data.info ?? "",
@@ -104,10 +120,9 @@ class BookInfoWidget extends StatelessWidget {
                 Text(
                   "Description",
                   style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                    color: Theme.of(context).colorScheme.tertiary,
-                  ),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      color: Theme.of(context).colorScheme.tertiary),
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1,
                 ),
@@ -166,4 +181,22 @@ class _TopPaddedText extends StatelessWidget {
       ),
     );
   }
+}
+
+String parseHtmlToPlainText(String htmlString) {
+  // Replace <br> tags with newlines
+  final withNewlines = htmlString.replaceAll('<br>', '\n');
+  // Remove other HTML tags
+  final strippedString = withNewlines.replaceAll(RegExp(r'<[^>]*>'), '');
+  // Decode HTML entities
+  final text = parseHtmlEntity(strippedString);
+  return text;
+}
+
+String parseHtmlEntity(String htmlString) {
+  final text = htmlString.replaceAllMapped(RegExp(r'&#(\d+);'), (match) {
+    final entity = String.fromCharCode(int.parse(match.group(1)!));
+    return entity;
+  });
+  return text;
 }

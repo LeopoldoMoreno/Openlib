@@ -1,8 +1,10 @@
 import 'package:dio/dio.dart';
-import 'files.dart';
 
 Future<String> _getFilePath(String fileName) async {
-  final path = await getAppDirectoryPath;
+  String downloadDir = '/storage/emulated/0/Download';
+  String path = '$downloadDir/epubs/';
+
+  // final path = await getAppDirectoryPath;
   return '$path/$fileName';
 }
 
@@ -38,6 +40,68 @@ Future<String?> _getAliveMirror(List<String> mirrors, Dio dio) async {
   return null;
 }
 
+Future<String?> _getFastestAliveMirror(List<String> mirrors) async {
+  List<Future<Map<String, dynamic>>> futures = [];
+  Dio dio = Dio();
+
+  for (var url in mirrors) {
+    futures.add(() async {
+      Stopwatch stopwatch = Stopwatch()..start();
+      try {
+        final response = await dio.head(url,
+            options: Options(receiveTimeout: const Duration(seconds: 5)));
+        stopwatch.stop();
+        return {
+          'url': url,
+          'statusCode': response.statusCode,
+          'responseTime': stopwatch.elapsedMilliseconds,
+        };
+      } catch (e) {
+        stopwatch.stop();
+        if (e is DioException) {
+          switch (e.type) {
+            case DioExceptionType.cancel:
+              break;
+            case DioExceptionType.connectionTimeout:
+              break;
+            case DioExceptionType.sendTimeout:
+              break;
+            case DioExceptionType.receiveTimeout:
+              break;
+            case DioExceptionType.badResponse:
+              break;
+            case DioExceptionType.unknown:
+              break;
+            case DioExceptionType.badCertificate:
+              break;
+            case DioExceptionType.connectionError:
+              break;
+          }
+        } else {
+          print('$url: Unexpected error occurred: $e');
+        }
+        return {
+          'url': url,
+          'statusCode': null,
+          'responseTime': stopwatch.elapsedMilliseconds,
+        };
+      }
+    }());
+  }
+
+  List<Map<String, dynamic>> results = await Future.wait(futures);
+
+  results = results.where((result) => result['statusCode'] == 200).toList();
+
+  if (results.isEmpty) {
+    return null;
+  }
+
+  results.sort((a, b) => a['responseTime'].compareTo(b['responseTime']));
+
+  return results.first['url'];
+}
+
 Future<void> downloadFile(
     {required List<String> mirrors,
     required String md5,
@@ -51,7 +115,7 @@ Future<void> downloadFile(
   String path = await _getFilePath('$md5.$format');
   List<String> orderedMirrors = _reorderMirrors(mirrors);
 
-  String? workingMirror = await _getAliveMirror(orderedMirrors, dio);
+  String? workingMirror = await _getFastestAliveMirror(orderedMirrors);
 
   // print(workingMirror);
   // print(path);

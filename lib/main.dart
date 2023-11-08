@@ -1,8 +1,11 @@
 import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
+import 'package:openlib/services/open_library.dart';
+import 'package:openlib/ui/list_page.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'package:openlib/ui/themes.dart';
@@ -15,13 +18,15 @@ import 'package:openlib/services/files.dart'
     show moveFilesToAndroidInternalStorage;
 import 'package:openlib/state/state.dart'
     show
+        cookieProvider,
+        dbProvider,
+        getListBooks,
+        openEpubWithExternalAppProvider,
+        openPdfWithExternalAppProvider,
         selectedIndexProvider,
         themeModeProvider,
-        openPdfWithExternalAppProvider,
-        openEpubWithExternalAppProvider,
-        userAgentProvider,
-        cookieProvider,
-        dbProvider;
+        useGoodReadsTrendingProvider,
+        userAgentProvider;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,6 +43,8 @@ void main() async {
       await dataBase.getPreference('openPdfwithExternalApp');
   bool openEpubwithExternalapp =
       await dataBase.getPreference('openEpubwithExternalApp');
+  bool useGoodReadsTrending =
+      await dataBase.getPreference('useGoodReadsTrending');
 
   String browserUserAgent = await dataBase.getBrowserOptions('userAgent');
   String browserCookie = await dataBase.getBrowserOptions('cookie');
@@ -60,6 +67,8 @@ void main() async {
             .overrideWith((ref) => openPdfwithExternalapp),
         openEpubWithExternalAppProvider
             .overrideWith((ref) => openEpubwithExternalapp),
+        useGoodReadsTrendingProvider
+            .overrideWith((ref) => useGoodReadsTrending),
         userAgentProvider.overrideWith((ref) => browserUserAgent),
         cookieProvider.overrideWith((ref) => browserCookie),
       ],
@@ -118,6 +127,39 @@ class _HomePageState extends ConsumerState<HomePage> {
         title: const Text("Openlib"),
         titleTextStyle: Theme.of(context).textTheme.displayLarge,
       ),
+      drawer: Drawer(
+          child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          const ListTile(
+            title: Text("OpenLib"),
+          ),
+          const Divider(),
+          ListTile(
+            title: const Text("New Releases"),
+            onTap: () async {
+              final listBooks = await ref
+                  .read(getListBooks.notifier)
+                  .fetchListBooks("New Releases");
+              Navigator.push(context, MaterialPageRoute(builder: (context) {
+                return ListPage(listType: "New Releases", listBooks: listBooks);
+              }));
+            },
+          ),
+          ListTile(
+            title: const Text("BookTok Recommendations"),
+            onTap: () async {
+              final listBooks = await ref
+                  .read(getListBooks.notifier)
+                  .fetchListBooks("BookTok");
+              Navigator.push(context, MaterialPageRoute(builder: (context) {
+                return ListPage(
+                    listType: "BookTok Recommendations", listBooks: listBooks);
+              }));
+            },
+          )
+        ],
+      )),
       body: _widgetOptions.elementAt(selectedIndex),
       bottomNavigationBar: SafeArea(
         child: GNav(

@@ -1,19 +1,19 @@
 import 'package:dio/dio.dart';
 import 'package:html/parser.dart' show parse;
 
-class TrendingBookData {
+class ListBookData {
   final String? title;
   final String? thumbnail;
-  TrendingBookData({this.title, this.thumbnail});
+  ListBookData({this.title, this.thumbnail});
 }
 
 class OpenLibrary {
   String url = "https://openlibrary.org/trending/daily";
 
-  List<TrendingBookData> _parser(data) {
+  List<ListBookData> _parser(data) {
     var document = parse(data.toString());
     var bookList = document.querySelectorAll('li[class="searchResultItem"]');
-    List<TrendingBookData> trendingBooks = [];
+    List<ListBookData> trendingBooks = [];
     for (var element in bookList) {
       if (element.querySelector('h3[class="booktitle"]')?.text != null &&
           element.querySelector('img[itemprop="image" ]')?.attributes['src'] !=
@@ -21,7 +21,7 @@ class OpenLibrary {
         String? thumbnail =
             element.querySelector('img[itemprop="image" ]')?.attributes['src'];
         trendingBooks.add(
-          TrendingBookData(
+          ListBookData(
               title:
                   element.querySelector('h3[class="booktitle"]')?.text.trim(),
               thumbnail: 'https:${thumbnail.toString()}'),
@@ -31,7 +31,7 @@ class OpenLibrary {
     return trendingBooks;
   }
 
-  Future<List<TrendingBookData>> trendingBooks() async {
+  Future<List<ListBookData>> trendingBooks() async {
     try {
       final dio = Dio();
       final response = await dio.get(url,

@@ -213,7 +213,7 @@ class AnnasArchieve {
       'description': main
               ?.querySelector(
                   'div[class="mt-4 line-clamp-[5] js-md5-top-box-description"]')
-              ?.text ??
+              ?.innerHtml ??
           " "
     };
 

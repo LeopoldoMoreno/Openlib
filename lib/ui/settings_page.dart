@@ -10,6 +10,7 @@ import 'package:openlib/state/state.dart'
         themeModeProvider,
         openPdfWithExternalAppProvider,
         openEpubWithExternalAppProvider,
+        useGoodReadsTrendingProvider,
         dbProvider;
 
 class SettingsPage extends ConsumerWidget {
@@ -100,6 +101,32 @@ class SettingsPage extends ConsumerWidget {
                     ref
                         .read(dbProvider)
                         .savePreference('openEpubwithExternalApp', value);
+                  },
+                )
+              ],
+            ),
+            _PaddedContainer(
+              children: [
+                Text(
+                  "Use Goodreads Trending",
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.tertiary,
+                  ),
+                ),
+                Switch(
+                  // This bool value toggles the switch.
+                  value: ref.watch(
+                    useGoodReadsTrendingProvider,
+                  ),
+                  activeColor: Colors.red,
+                  onChanged: (bool value) {
+                    ref.read(useGoodReadsTrendingProvider.notifier).state =
+                        value;
+                    ref
+                        .read(dbProvider)
+                        .savePreference('useGoodReadsTrending', value);
                   },
                 )
               ],

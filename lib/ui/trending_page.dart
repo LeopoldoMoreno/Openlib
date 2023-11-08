@@ -17,6 +17,7 @@ class TrendingPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final trendingBooks = ref.watch(getTrendingBooks);
+
     return trendingBooks.when(
         skipLoadingOnRefresh: false,
         data: (data) {

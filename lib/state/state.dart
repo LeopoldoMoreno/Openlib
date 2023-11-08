@@ -1,12 +1,14 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:openlib/services/database.dart';
 import 'package:dio/dio.dart';
+import 'package:openlib/services/goodreads.dart';
 
-import 'package:openlib/services/open_library.dart';
 import 'package:openlib/services/annas_archieve.dart';
 import 'package:openlib/services/files.dart';
+import 'package:openlib/services/open_library.dart';
 
 //Provider for dropdownbutton in search page
 
@@ -63,10 +65,38 @@ final searchQueryProvider = StateProvider<String>((ref) => "");
 
 //Provider for Trending Books
 
-final getTrendingBooks = FutureProvider<List<TrendingBookData>>((ref) async {
-  OpenLibrary openLibrary = OpenLibrary();
-  return await openLibrary.trendingBooks();
+final getTrendingBooks = FutureProvider<List<ListBookData>>((ref) async {
+  bool useGoodReadsTrending = ref.watch(useGoodReadsTrendingProvider);
+  if (useGoodReadsTrending) {
+    GoodReads goodReads = GoodReads();
+    return await goodReads.trendingBooks();
+  } else {
+    OpenLibrary openLibrary = OpenLibrary();
+    return await openLibrary.trendingBooks();
+  }
 });
+
+final getListBooks =
+    StateNotifierProvider<ListBooksNotifier, List<ListBookData>>((ref) {
+  return ListBooksNotifier([]);
+});
+
+class ListBooksNotifier extends StateNotifier<List<ListBookData>> {
+  ListBooksNotifier(List<ListBookData> state) : super(state);
+  GoodReads goodReads = GoodReads();
+  Future<List<ListBookData>> fetchListBooks(String listType) async {
+    List<ListBookData> books = [];
+    // Make an API request or fetch the data based on the listType.
+    // Update the state with the fetched data.
+    if (listType == 'New Releases') {
+      books = await goodReads.newReleases();
+    } else if (listType == 'BookTok') {
+      books = await goodReads.bookTok();
+    }
+    state = books;
+    return books;
+  }
+}
 
 //Provider for Trending Books
 final searchProvider = FutureProvider.family
@@ -166,6 +196,7 @@ final getBookPosition =
 
 final openPdfWithExternalAppProvider = StateProvider<bool>((ref) => false);
 final openEpubWithExternalAppProvider = StateProvider<bool>((ref) => false);
+final useGoodReadsTrendingProvider = StateProvider<bool>((ref) => false);
 
 final filePathProvider =
     FutureProvider.family<String, String>((ref, fileName) async {
