@@ -260,6 +260,15 @@ Future<void> downloadFileWidget(
             if (checkSum == true) {
               ref.read(checkSumState.notifier).state =
                   CheckSumProcessState.success;
+
+              final sanitizedTitle = sanitizeFileName(data.title);
+
+              final oldFilePath =
+                  '${await getDownloadPath()}/${data.md5}.${data.format}';
+              final newFilePath =
+                  '${await getDownloadPath()}/$sanitizedTitle.${data.format}';
+
+              await renameFile(oldFilePath, newFilePath);
             } else {
               ref.read(checkSumState.notifier).state =
                   CheckSumProcessState.failed;
@@ -620,4 +629,9 @@ Future<void> _showWarningFileDialog(BuildContext context) async {
       );
     },
   );
+}
+
+String sanitizeFileName(String title) {
+  final invalidChars = RegExp(r'[\/:*?"<>|]');
+  return title.replaceAll(invalidChars, '_');
 }

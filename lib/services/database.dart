@@ -223,4 +223,14 @@ class MyLibraryDb {
       return "";
     }
   }
+
+  Future<String?> getTitle(String id) async {
+    List<Map<String, dynamic>> data =
+        await dbInstance.query(tableName, where: 'id = ?', whereArgs: [id]);
+    List<MyBook> book = listMapToMyBook(data);
+    if (book.isNotEmpty) {
+      return book.first.title;
+    }
+    return null;
+  }
 }

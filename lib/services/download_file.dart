@@ -2,10 +2,20 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'files.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 Future<String> _getFilePath(String fileName) async {
-  final path = await getAppDirectoryPath;
+  final path = await getDownloadPath();
+
+  // final path = await getAppDirectoryPath;
   return '$path/$fileName';
+}
+
+Future<String> getDownloadPath() async {
+  String downloadDir = '/storage/emulated/0/Download';
+  String path = '$downloadDir/epubs';
+
+  return path;
 }
 
 List<String> _reorderMirrors(List<String> mirrors) {
@@ -57,6 +67,9 @@ Future<void> downloadFile(
     Dio dio = Dio();
 
     String path = await _getFilePath('$md5.$format');
+
+    await requestStoragePermission();
+
     List<String> orderedMirrors = _reorderMirrors(mirrors);
 
     String? workingMirror = await _getAliveMirror(orderedMirrors);
@@ -87,7 +100,7 @@ Future<void> downloadFile(
           deleteOnError: true,
           cancelToken: cancelToken,
         ).catchError((err) {
-          if (err.type != DioExceptionType.cancel) {
+          if (err is DioException && err.type != DioExceptionType.cancel) {
             onDownlaodFailed('downloaded Failed! try again...');
           }
           throw err;
@@ -105,10 +118,26 @@ Future<void> downloadFile(
   }
 }
 
+Future<void> renameFile(String oldPath, String newPath) async {
+  final file = File(oldPath);
+  if (await file.exists()) {
+    var newFile = File(newPath);
+    var counter = 1;
+    while (await newFile.exists()) {
+      var base = newPath.split('.').first;
+      var ext = newPath.split('.').last;
+      newPath = '$base($counter).$ext';
+      newFile = File(newPath);
+      counter++;
+    }
+    await file.rename(newPath);
+  }
+}
+
 Future<bool> verifyFileCheckSum(
     {required String md5Hash, required String format}) async {
   try {
-    final path = await getAppDirectoryPath;
+    final path = await getDownloadPath();
     final filePath = '$path/$md5Hash.$format';
     final file = File(filePath);
     final stream = file.openRead();
@@ -119,5 +148,20 @@ Future<bool> verifyFileCheckSum(
     return false;
   } catch (_) {
     return false;
+  }
+}
+
+Future<void> requestStoragePermission() async {
+  var storageStatus = await Permission.manageExternalStorage.status;
+  if (!storageStatus.isGranted) {
+    if (!storageStatus.isGranted) {
+      storageStatus = await Permission.manageExternalStorage.request();
+    }
+    if (storageStatus.isPermanentlyDenied) {
+      openAppSettings();
+    }
+    if (!storageStatus.isGranted) {
+      throw Exception('Storage permission not granted');
+    }
   }
 }

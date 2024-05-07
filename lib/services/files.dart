@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:openlib/state/state.dart' show dbProvider, myLibraryProvider;
+import 'download_file.dart';
 
 Future<String> get getAppDirectoryPath async {
   if (Platform.isAndroid) {
@@ -55,15 +56,31 @@ Future<String> getFilePath(String fileName) async {
 Future<void> deleteFileWithDbData(
     FutureProviderRef ref, String md5, String format) async {
   try {
-    String fileName = '$md5.$format';
-    String appDirPath = await getAppDirectoryPath;
-    await deleteFile('$appDirPath/$fileName');
-    await ref.read(dbProvider).delete(md5);
-    await ref.read(dbProvider).deleteBookState(fileName);
-    // ignore: unused_result
-    ref.refresh(myLibraryProvider);
+    // Fetch the title from the database using the MD5 hash
+    String? title = await ref.read(dbProvider).getTitle(md5);
+    if (title != null) {
+      String sanitizedTitle = sanitizeFileName(title);
+
+      String fileName = '$sanitizedTitle.$format';
+
+      final path = await getDownloadPath();
+      String filePath = '$path/$fileName';
+
+      await deleteFile(filePath);
+      await ref.read(dbProvider).delete(md5);
+      await ref.read(dbProvider).deleteBookState(fileName);
+      // ignore: unused_result
+      ref.refresh(myLibraryProvider);
+    } else {
+      throw "Title not found";
+    }
   } catch (e) {
     // print(e);
     rethrow;
   }
+}
+
+String sanitizeFileName(String title) {
+  final invalidChars = RegExp(r'[\/:*?"<>|]');
+  return title.replaceAll(invalidChars, '_');
 }
